@@ -8,7 +8,7 @@ const generateToken = (id) => {
   });
 };
 
-// route  POST /api/auth/register
+// route  POST /auth/register
 
 const registerUser = async (req, res) => {
   try {
@@ -42,7 +42,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-//   POST /api/auth/login
+//   POST /auth/login
 
 const loginUser = async (req, res) => {
   try {
@@ -72,14 +72,14 @@ const loginUser = async (req, res) => {
   }
 };
 
-// GET /api/auth/profile
+// GET /auth/profile
 
 const getProfile = async (req, res) => {
   // req.user is set by the `protect` middleware
   return res.status(200).json(req.user);
 };
 
-// PUT /api/auth/profile
+// PUT /auth/profile
 // 
 const updateProfile = async (req, res) => {
   try {
@@ -111,4 +111,27 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getProfile, updateProfile };
+// GET /api/auth/users?role=student&search=john
+const getUsers = async (req, res) => {
+  try {
+    const { role, search } = req.query;
+
+    const filter = {};
+    if (role) filter.role = role;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const users = await User.find(filter).select("name email role");
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error while fetching users" });
+  }
+};
+
+module.exports = { registerUser, loginUser, getProfile, updateProfile, getUsers };
+
