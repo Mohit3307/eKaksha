@@ -14,20 +14,29 @@ const submissionSchema = new mongoose.Schema(
       required: true,
     },
 
-    content: {
+    textResponse: {
       type: String,
       default: "",
     },
 
-    fileUrl: {
-      type: String,
-      default: null,
+    attachments: [
+      {
+        type: String, // file URLs/paths
+      },
+    ],
+
+    submittedAt: {
+      type: Date,
+      default: Date.now,
     },
 
-    score: {
+    isLate: {
+      type: Boolean,
+      default: false,
+    },
+
+    grade: {
       type: Number,
-      min: 0,
-      max: 100,
       default: null,
     },
 
@@ -36,9 +45,9 @@ const submissionSchema = new mongoose.Schema(
       default: "",
     },
 
-    graded: {
-      type: Boolean,
-      default: false,
+    gradedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true },
