@@ -6,6 +6,8 @@ const authRoutes = require("./routes/authRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const assignmentRoutes = require("./routes/assignmentRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
+const announcementRoutes = require("./routes/announcementRoutes");
+const commentRoutes = require("./routes/commentRoutes");
 
 const app = express();
 connectDB();
@@ -19,6 +21,8 @@ app.use("/auth", authRoutes);
 app.use("/courses", courseRoutes);
 app.use("/assignments", assignmentRoutes);
 app.use("/submissions", submissionRoutes);
+app.use("/announcements", announcementRoutes);
+app.use("/comments", commentRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

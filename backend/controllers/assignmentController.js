@@ -1,22 +1,38 @@
-const Assignment = require('../models/Assignment');
-const Course = require('../models/Course');
+const mongoose = require("mongoose");
+const Assignment = require("../models/Assignment");
+const Course = require("../models/Course");
 
-exports.createAssignment = async (req, res) => {
+const createAssignment = async (req, res) => {
   try {
-    const { title, description, course, dueDate } = req.body;
+    const { title, description, course, dueDate, totalMarks, attachments } = req.body;
 
     if (!title || !description || !course || !dueDate) {
       return res.status(400).json({
-        message: 'title, description, course and dueDate are required'
+        message: "title, description, course and dueDate are required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(course)) {
+      return res.status(400).json({ message: "Invalid course id" });
+    }
+
+    const numericTotalMarks =
+      totalMarks === undefined ? 100 : Number(totalMarks);
+
+    if (!Number.isFinite(numericTotalMarks) || numericTotalMarks <= 0) {
+      return res.status(400).json({
+        message: "totalMarks must be a positive number",
       });
     }
 
     const existingCourse = await Course.findById(course);
 
     if (!existingCourse) {
-      return res.status(404).json({
-        message: 'Course not found'
-      });
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    if (existingCourse.teacher.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "You do not own this course" });
     }
 
     const assignment = await Assignment.create({
@@ -24,80 +40,111 @@ exports.createAssignment = async (req, res) => {
       description,
       course,
       dueDate,
-      createdBy: req.user.id
+      totalMarks: numericTotalMarks,
+      attachments: Array.isArray(attachments) ? attachments : [],
+      createdBy: req.user._id,
     });
 
-    res.status(201).json(assignment);
+    return res.status(201).json(assignment);
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to create assignment',
-      error: error.message
-    });
-  }
-};
-exports.getAssignmentsByCourse = async (req, res) => {
-  try {
-    const assignments = await Assignment.find({
-      course: req.params.courseId
-    })
-      .populate('createdBy', 'name email')
-      .sort({ dueDate: 1 });
-
-    res.status(200).json(assignments);
-  } catch (error) {
-    res.status(500).json({
-      message: 'Failed to fetch assignments',
-      error: error.message
-    });
+    console.error(error);
+    return res.status(500).json({ message: "Failed to create assignment" });
   }
 };
 
-exports.getAssignment = async (req, res) => {
+const getAssignmentsByCourse = async (req, res) => {
   try {
-    const assignment = await Assignment.findById(req.params.id)
-      .populate('course')
-      .populate('createdBy', 'name email');
+    const { courseId } = req.params;
 
-    if (!assignment) {
-      return res.status(404).json({
-        message: 'Assignment not found'
-      });
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: "Invalid course id" });
     }
 
-    res.status(200).json(assignment);
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    const isTeacher = course.teacher.toString() === req.user._id.toString();
+    const isStudent = course.students.some(
+      (studentId) => studentId.toString() === req.user._id.toString()
+    );
+
+    if (!isTeacher && !isStudent) {
+      return res.status(403).json({ message: "You are not a member of this course" });
+    }
+
+    const assignments = await Assignment.find({ course: courseId })
+      .populate("createdBy", "name email")
+      .sort({ dueDate: 1 });
+
+    return res.status(200).json(assignments);
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to fetch assignment',
-      error: error.message
-    });
+    console.error(error);
+    return res.status(500).json({ message: "Failed to fetch assignments" });
   }
 };
 
-exports.deleteAssignment = async (req, res) => {
+const getAssignment = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid assignment id" });
+    }
+
+    const assignment = await Assignment.findById(req.params.id)
+      .populate("course")
+      .populate("createdBy", "name email");
+
+    if (!assignment) {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    const course = assignment.course;
+    const isTeacher = course.teacher.toString() === req.user._id.toString();
+    const isStudent = course.students.some(
+      (studentId) => studentId.toString() === req.user._id.toString()
+    );
+
+    if (!isTeacher && !isStudent) {
+      return res.status(403).json({ message: "You are not a member of this course" });
+    }
+
+    return res.status(200).json(assignment);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to fetch assignment" });
+  }
+};
+
+const deleteAssignment = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid assignment id" });
+    }
+
     const assignment = await Assignment.findById(req.params.id);
 
     if (!assignment) {
-      return res.status(404).json({
-        message: 'Assignment not found'
-      });
+      return res.status(404).json({ message: "Assignment not found" });
     }
 
-    if (assignment.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: 'Not authorized'
-      });
+    if (assignment.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     await assignment.deleteOne();
 
-    res.status(200).json({
-      message: 'Assignment deleted'
-    });
+    return res.status(200).json({ message: "Assignment deleted" });
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to delete assignment',
-      error: error.message
-    });
+    console.error(error);
+    return res.status(500).json({ message: "Failed to delete assignment" });
   }
+};
+
+module.exports = {
+  createAssignment,
+  getAssignmentsByCourse,
+  getAssignment,
+  deleteAssignment,
 };

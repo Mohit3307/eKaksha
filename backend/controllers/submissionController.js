@@ -1,142 +1,153 @@
-const Assignment = require('../models/Assignment');
-const Submission = require('../models/Submission');
+const mongoose = require("mongoose");
+const Assignment = require("../models/Assignment");
+const Submission = require("../models/Submission");
+const Course = require("../models/Course");
 
-exports.submitAssignment = async (req, res) => {
+const submitAssignment = async (req, res) => {
   try {
-    const assignment = await Assignment.findById(req.params.assignmentId);
+    const { assignmentId } = req.params;
+    const { textResponse, attachments } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
+      return res.status(400).json({ message: "Invalid assignment id" });
+    }
+
+    const assignment = await Assignment.findById(assignmentId);
 
     if (!assignment) {
-      return res.status(404).json({
-        message: 'Assignment not found'
-      });
+      return res.status(404).json({ message: "Assignment not found" });
     }
 
-    // Prevent submissions after the deadline.
-    if (new Date() > new Date(assignment.dueDate)) {
-      return res.status(400).json({
-        message: 'Assignment deadline has passed'
-      });
+    const course = await Course.findById(assignment.course);
+
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
     }
 
-    // Prevent duplicate submission.
+    const isStudent = course.students.some(
+      (studentId) => studentId.toString() === req.user._id.toString()
+    );
+
+    if (!isStudent) {
+      return res.status(403).json({ message: "You are not enrolled in this course" });
+    }
+
     const existingSubmission = await Submission.findOne({
       assignment: assignment._id,
-      student: req.user.id
+      student: req.user._id,
     });
 
     if (existingSubmission) {
-      return res.status(409).json({
-        message: 'Assignment already submitted'
-      });
+      return res.status(409).json({ message: "Assignment already submitted" });
     }
+
+    const isLate = new Date() > new Date(assignment.dueDate);
 
     const submission = await Submission.create({
       assignment: assignment._id,
-      student: req.user.id,
-      content: req.body.content || ''
+      student: req.user._id,
+      textResponse: textResponse || "",
+      attachments: Array.isArray(attachments) ? attachments : [],
+      isLate,
+      submittedAt: new Date(),
     });
 
-    res.status(201).json(submission);
+    return res.status(201).json(submission);
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to submit assignment',
-      error: error.message
-    });
+    console.error(error);
+    return res.status(500).json({ message: "Failed to submit assignment" });
   }
 };
 
-exports.getMySubmissions = async (req, res) => {
+const getMySubmissions = async (req, res) => {
   try {
-    const submissions = await Submission.find({
-      student: req.user.id
-    })
-      .populate('assignment')
+    const submissions = await Submission.find({ student: req.user._id })
+      .populate("assignment")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(submissions);
+    return res.status(200).json(submissions);
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to fetch submissions',
-      error: error.message
-    });
+    console.error(error);
+    return res.status(500).json({ message: "Failed to fetch submissions" });
   }
 };
 
-exports.getAssignmentSubmissions = async (req, res) => {
+const getAssignmentSubmissions = async (req, res) => {
   try {
-    const assignment = await Assignment.findById(req.params.assignmentId);
+    const { assignmentId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
+      return res.status(400).json({ message: "Invalid assignment id" });
+    }
+
+    const assignment = await Assignment.findById(assignmentId);
 
     if (!assignment) {
-      return res.status(404).json({
-        message: 'Assignment not found'
-      });
+      return res.status(404).json({ message: "Assignment not found" });
     }
 
-    if (assignment.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: 'Not authorized'
-      });
+    if (assignment.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
-    const submissions = await Submission.find({
-      assignment: assignment._id
-    })
-      .populate('student', 'name email')
+    const submissions = await Submission.find({ assignment: assignment._id })
+      .populate("student", "name email")
       .sort({ createdAt: 1 });
 
-    res.status(200).json(submissions);
+    return res.status(200).json(submissions);
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to fetch submissions',
-      error: error.message
-    });
+    console.error(error);
+    return res.status(500).json({ message: "Failed to fetch submissions" });
   }
 };
 
-
-exports.gradeSubmission = async (req, res) => {
+const gradeSubmission = async (req, res) => {
   try {
-    const { score, feedback } = req.body;
+    const { grade, feedback } = req.body;
+    const { submissionId } = req.params;
 
-    if (
-      score === undefined ||
-      Number(score) < 0 ||
-      Number(score) > 100
-    ) {
-      return res.status(400).json({
-        message: 'Score must be between 0 and 100'
-      });
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+      return res.status(400).json({ message: "Invalid submission id" });
     }
 
-    const submission = await Submission.findById(
-      req.params.submissionId
-    ).populate('assignment');
+    if (grade === undefined || grade === null || Number.isNaN(Number(grade))) {
+      return res.status(400).json({ message: "Grade is required" });
+    }
+
+    const submission = await Submission.findById(submissionId).populate("assignment");
 
     if (!submission) {
-      return res.status(404).json({
-        message: 'Submission not found'
+      return res.status(404).json({ message: "Submission not found" });
+    }
+
+    if (submission.assignment.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const numericGrade = Number(grade);
+
+    if (numericGrade < 0 || numericGrade > submission.assignment.totalMarks) {
+      return res.status(400).json({
+        message: `Grade must be between 0 and ${submission.assignment.totalMarks}`,
       });
     }
 
-    if (
-      submission.assignment.createdBy.toString() !== req.user.id
-    ) {
-      return res.status(403).json({
-        message: 'Not authorized'
-      });
-    }
-
-    submission.score = Number(score);
-    submission.feedback = feedback || '';
-    submission.graded = true;
+    submission.grade = numericGrade;
+    submission.feedback = feedback || "";
+    submission.gradedAt = new Date();
 
     await submission.save();
 
-    res.status(200).json(submission);
+    return res.status(200).json(submission);
   } catch (error) {
-    res.status(500).json({
-      message: 'Failed to grade submission',
-      error: error.message
-    });
+    console.error(error);
+    return res.status(500).json({ message: "Failed to grade submission" });
   }
+};
+
+module.exports = {
+  submitAssignment,
+  getMySubmissions,
+  getAssignmentSubmissions,
+  gradeSubmission,
 };

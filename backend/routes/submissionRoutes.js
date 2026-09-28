@@ -8,29 +8,41 @@ const {
   gradeSubmission,
 } = require("../controllers/submissionController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
 router.post(
   "/assignment/:assignmentId",
   protect,
+  authorizeRoles("student"),
   submitAssignment
 );
 
 router.get(
   "/mine",
   protect,
+  authorizeRoles("student"),
   getMySubmissions
 );
 
 router.get(
   "/assignment/:assignmentId",
   protect,
+  authorizeRoles("teacher"),
   getAssignmentSubmissions
 );
 
+router.put(
+  "/:submissionId/grade",
+  protect,
+  authorizeRoles("teacher"),
+  gradeSubmission
+);
+
+// Keep PATCH working too so existing Postman requests do not break.
 router.patch(
   "/:submissionId/grade",
   protect,
+  authorizeRoles("teacher"),
   gradeSubmission
 );
 

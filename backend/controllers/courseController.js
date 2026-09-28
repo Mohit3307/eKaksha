@@ -1,19 +1,19 @@
+const mongoose = require("mongoose");
 const Course = require("../models/Course");
 
 const POPULATE_FIELDS = "name email";
 
-// Generates a random 6-character alphanumeric code, e.g. "A3F9K2"
 const generateJoinCode = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";
+
   for (let i = 0; i < 6; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+
   return code;
 };
 
-// @route  POST /api/courses
-// @access Private (teacher only)
 const createCourse = async (req, res) => {
   try {
     const { title, description, category } = req.body;
@@ -24,6 +24,7 @@ const createCourse = async (req, res) => {
 
     let joinCode;
     let codeExists = true;
+
     while (codeExists) {
       joinCode = generateJoinCode();
       codeExists = await Course.findOne({ joinCode });
@@ -44,8 +45,6 @@ const createCourse = async (req, res) => {
   }
 };
 
-// @route  POST /api/courses/join
-// @access Private (student only)
 const joinCourse = async (req, res) => {
   try {
     const { joinCode } = req.body;
@@ -54,13 +53,13 @@ const joinCourse = async (req, res) => {
       return res.status(400).json({ message: "Join code is required" });
     }
 
-    const course = await Course.findOne({ joinCode });
+    const course = await Course.findOne({ joinCode: joinCode.toUpperCase() });
 
     if (!course) {
       return res.status(404).json({ message: "Invalid join code" });
     }
 
-    if (course.students.includes(req.user._id)) {
+    if (course.students.some((id) => id.toString() === req.user._id.toString())) {
       return res.status(409).json({ message: "You are already enrolled in this course" });
     }
 
@@ -74,8 +73,6 @@ const joinCourse = async (req, res) => {
   }
 };
 
-// @route  GET /api/courses
-// @access Private
 const getMyCourses = async (req, res) => {
   try {
     let courses;
@@ -97,10 +94,12 @@ const getMyCourses = async (req, res) => {
   }
 };
 
-// @route  GET /api/courses/:id
-// @access Private
 const getCourseById = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid course id" });
+    }
+
     const course = await Course.findById(req.params.id)
       .populate("teacher", POPULATE_FIELDS)
       .populate("students", POPULATE_FIELDS);
@@ -116,11 +115,17 @@ const getCourseById = async (req, res) => {
   }
 };
 
-// @route  PUT /api/courses/:id/roster
-// @access Private (teacher only, must own the course)
 const manageRoster = async (req, res) => {
   try {
-    const { studentId, action } = req.body; // action: "add" or "remove"
+    const { studentId, action } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid course id" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student id" });
+    }
 
     const course = await Course.findById(req.params.id);
 
@@ -133,7 +138,7 @@ const manageRoster = async (req, res) => {
     }
 
     if (action === "add") {
-      if (!course.students.includes(studentId)) {
+      if (!course.students.some((id) => id.toString() === studentId)) {
         course.students.push(studentId);
       }
     } else if (action === "remove") {
@@ -155,10 +160,12 @@ const manageRoster = async (req, res) => {
   }
 };
 
-// @route  PUT /api/courses/:id/archive
-// @access Private (teacher only, must own the course)
 const archiveCourse = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid course id" });
+    }
+
     const course = await Course.findById(req.params.id);
 
     if (!course) {
