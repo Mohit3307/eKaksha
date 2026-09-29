@@ -1,35 +1,69 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import Login from "./pages/login";
-import Register from "./pages/Register";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
+
 import "./App.css";
 
-function Dashboard() {
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+import Login from "./pages/login";
+import Register from "./pages/register";
 
-  return (
-    <div style={{ padding: "40px" }}>
-      <h1>Welcome to eKaksha</h1>
+import Dashboard from "./pages/Dashboard";
+import Courses from "./pages/courses/Courses";
 
-      {user && (
-        <>
-          <p>Welcome, {user.name}!</p>
-          <p>Role: {user.role}</p>
-        </>
-      )}
-    </div>
-  );
-}
+import AppLayout from "./components/AppLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/dashboard" element={<Dashboard />} />
+      {/* Public routes */}
+      <Route
+        path="/login"
+        element={<Login />}
+      />
 
       <Route
+        path="/register"
+        element={<Register />}
+      />
+
+      {/* Protected application */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route
+            path="/dashboard"
+            element={<Dashboard />}
+          />
+
+          <Route
+            path="/courses"
+            element={<Courses />}
+          />
+        </Route>
+      </Route>
+
+      {/* Default route */}
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to="/dashboard"
+            replace
+          />
+        }
+      />
+
+      {/* Unknown route */}
+      <Route
         path="*"
-        element={<Navigate to="/login" replace />}
+        element={
+          <Navigate
+            to="/dashboard"
+            replace
+          />
+        }
       />
     </Routes>
   );
