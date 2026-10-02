@@ -4,27 +4,27 @@ import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 
 function AppLayout() {
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => !prev);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
 
   return (
-    <div className="app-layout">
-      <Sidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+    <div
+      className={`app-layout ${sidebarOpen ? "sidebar-visible" : "sidebar-hidden"}`}
+    >
+      <Navbar onMenuClick={toggleSidebar} sidebarOpen={sidebarOpen} />
 
-      <div className="app-main">
-        <Navbar
-          onMenuClick={() =>
-            setSidebarOpen(true)
-          }
-        />
+      <Sidebar open={sidebarOpen} onClose={closeSidebar} />
 
-        <main className="page-content">
-          <Outlet />
-        </main>
-      </div>
+      <main className="page-content">
+        <Outlet />
+      </main>
     </div>
   );
 }

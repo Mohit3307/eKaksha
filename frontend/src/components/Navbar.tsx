@@ -2,22 +2,18 @@ import { useNavigate } from "react-router-dom";
 
 interface NavbarProps {
   onMenuClick?: () => void;
+  sidebarOpen?: boolean;
 }
 
-function Navbar({ onMenuClick }: NavbarProps) {
+function Navbar({ onMenuClick, sidebarOpen = true }: NavbarProps) {
   const navigate = useNavigate();
 
-  const user = JSON.parse(
-    localStorage.getItem("user") || "null"
-  );
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
-    navigate("/login", {
-      replace: true,
-    });
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -27,16 +23,14 @@ function Navbar({ onMenuClick }: NavbarProps) {
           className="mobile-menu-button"
           onClick={onMenuClick}
           type="button"
-          aria-label="Open menu"
+          aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+          aria-expanded={sidebarOpen}
         >
           ☰
         </button>
 
         <div className="navbar-brand">
-          <span className="brand-icon">
-            🎓
-          </span>
-
+          <span className="brand-icon">🎓</span>
           <span>eKaksha</span>
         </div>
       </div>
@@ -44,27 +38,16 @@ function Navbar({ onMenuClick }: NavbarProps) {
       <div className="navbar-right">
         <div className="navbar-user">
           <div className="user-avatar">
-            {user?.name
-              ? user.name.charAt(0).toUpperCase()
-              : "U"}
+            {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
           </div>
 
           <div className="navbar-user-info">
-            <strong>
-              {user?.name || "User"}
-            </strong>
-
-            <span>
-              {user?.role || "student"}
-            </span>
+            <strong>{user?.name || "User"}</strong>
+            <span>{user?.role || "student"}</span>
           </div>
         </div>
 
-        <button
-          type="button"
-          className="logout-button"
-          onClick={handleLogout}
-        >
+        <button type="button" className="logout-button" onClick={handleLogout}>
           Logout
         </button>
       </div>
