@@ -10,7 +10,9 @@ import Courses from "./pages/courses/Courses";
 import CreateCourse from "./pages/courses/CreateCourse";
 import JoinCourse from "./pages/courses/JoinCourse";
 import CourseDetails from "./pages/courses/CourseDetails";
-
+import Assignments from "./pages/assignments/Assignments";
+import CreateAssignment from "./pages/assignments/CreateAssignment";
+import AssignmentDetails from "./pages/assignments/AssignmentDetails";
 import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -31,6 +33,12 @@ function App() {
           <Route path="/courses/create" element={<CreateCourse />} />
           <Route path="/courses/join" element={<JoinCourse />} />
           <Route path="/courses/:id" element={<CourseDetails />} />
+          <Route path="/courses/:id/assignments" element={<Assignments />} />
+          <Route
+            path="/courses/:id/assignments/create"
+            element={<CreateAssignment />}
+          />
+          <Route path="/assignments/:id" element={<AssignmentDetails />} />
         </Route>
       </Route>
 

@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  archiveCourse,
-  getCourseById,
-} from "../../services/api";
+import { archiveCourse, getCourseById } from "../../services/api";
 import Loading from "../../components/Loading";
 import type { Course } from "../../types/course";
 
@@ -36,8 +33,7 @@ function CourseDetails() {
         setCourse(data);
       } catch (err: any) {
         setError(
-          err.response?.data?.message ||
-            "Unable to load course details."
+          err.response?.data?.message || "Unable to load course details.",
         );
       } finally {
         setLoading(false);
@@ -54,20 +50,17 @@ function CourseDetails() {
       await navigator.clipboard.writeText(course.joinCode);
       setCopyMessage("Join code copied!");
     } catch {
-      setCopyMessage(
-        "Copy failed. Please select and copy the code manually."
-      );
+      setCopyMessage("Copy failed. Please select and copy the code manually.");
     }
   };
 
   const handleArchive = async () => {
     if (!course || !id) return;
 
-    const action =
-      course.status === "active" ? "archive" : "restore";
+    const action = course.status === "active" ? "archive" : "restore";
 
     const confirmed = window.confirm(
-      `Are you sure you want to ${action} this course?`
+      `Are you sure you want to ${action} this course?`,
     );
 
     if (!confirmed) return;
@@ -79,10 +72,7 @@ function CourseDetails() {
       const updatedCourse = await archiveCourse(id);
       setCourse(updatedCourse);
     } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          `Unable to ${action} course.`
-      );
+      setError(err.response?.data?.message || `Unable to ${action} course.`);
     } finally {
       setActionLoading(false);
     }
@@ -128,15 +118,12 @@ function CourseDetails() {
           <div className="course-details-icon">📘</div>
 
           <div>
-            <p className="page-eyebrow">
-              {course.category || "Course"}
-            </p>
+            <p className="page-eyebrow">{course.category || "Course"}</p>
 
             <h1>{course.title}</h1>
 
             <p className="course-details-description">
-              {course.description ||
-                "No course description available."}
+              {course.description || "No course description available."}
             </p>
           </div>
         </div>
@@ -231,9 +218,7 @@ function CourseDetails() {
         <div className="section-heading">
           <div>
             <h2>Enrolled Students</h2>
-            <p>
-              Students currently enrolled in this course.
-            </p>
+            <p>Students currently enrolled in this course.</p>
           </div>
           <span className="student-count">
             {course.students?.length ?? 0} students
@@ -268,6 +253,22 @@ function CourseDetails() {
         )}
       </section>
 
+      <section className="details-card assignments-link-card">
+        <div>
+          <h2>Assignments</h2>
+
+          <p>View assignments, submit your work, and track your submissions.</p>
+        </div>
+
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => navigate(`/courses/${course._id}/assignments`)}
+        >
+          View Assignments →
+        </button>
+      </section>
+
       {isTeacher && (
         <section className="course-management-section">
           <div>
@@ -282,9 +283,7 @@ function CourseDetails() {
           <button
             type="button"
             className={
-              course.status === "active"
-                ? "danger-button"
-                : "primary-button"
+              course.status === "active" ? "danger-button" : "primary-button"
             }
             onClick={handleArchive}
             disabled={actionLoading}
@@ -292,8 +291,8 @@ function CourseDetails() {
             {actionLoading
               ? "Please wait..."
               : course.status === "active"
-              ? "Archive Course"
-              : "Restore Course"}
+                ? "Archive Course"
+                : "Restore Course"}
           </button>
         </section>
       )}

@@ -6,13 +6,17 @@ import type {
   RegisterRequest,
 } from "../types/auth";
 
-import type {
-  Course,
-  CreateCourseRequest,
-} from "../types/course";
+import type { Course, CreateCourseRequest } from "../types/course";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+import type {
+  Assignment,
+  CreateAssignmentRequest,
+  Submission,
+  SubmitAssignmentRequest,
+  GradeSubmissionRequest,
+} from "../types/assignment";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -37,31 +41,23 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 /* =========================
    AUTH
 ========================= */
 
-export const loginUser = async (
-  data: LoginRequest
-): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>(
-    "/auth/login",
-    data
-  );
+export const loginUser = async (data: LoginRequest): Promise<AuthResponse> => {
+  const response = await api.post<AuthResponse>("/auth/login", data);
 
   return response.data;
 };
 
 export const registerUser = async (
-  data: RegisterRequest
+  data: RegisterRequest,
 ): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>(
-    "/auth/register",
-    data
-  );
+  const response = await api.post<AuthResponse>("/auth/register", data);
 
   return response.data;
 };
@@ -77,10 +73,7 @@ export const updateProfile = async (data: {
   profilePicture?: string;
   password?: string;
 }) => {
-  const response = await api.put(
-    "/auth/profile",
-    data
-  );
+  const response = await api.put("/auth/profile", data);
 
   return response.data;
 };
@@ -95,36 +88,24 @@ export const getMyCourses = async (): Promise<Course[]> => {
   return response.data;
 };
 
-export const getCourseById = async (
-  courseId: string
-): Promise<Course> => {
-  const response = await api.get<Course>(
-    `/courses/${courseId}`
-  );
+export const getCourseById = async (courseId: string): Promise<Course> => {
+  const response = await api.get<Course>(`/courses/${courseId}`);
 
   return response.data;
 };
 
 export const createCourse = async (
-  data: CreateCourseRequest
+  data: CreateCourseRequest,
 ): Promise<Course> => {
-  const response = await api.post<Course>(
-    "/courses",
-    data
-  );
+  const response = await api.post<Course>("/courses", data);
 
   return response.data;
 };
 
-export const joinCourse = async (
-  joinCode: string
-): Promise<Course> => {
-  const response = await api.post<Course>(
-    "/courses/join",
-    {
-      joinCode,
-    }
-  );
+export const joinCourse = async (joinCode: string): Promise<Course> => {
+  const response = await api.post<Course>("/courses/join", {
+    joinCode,
+  });
 
   return response.data;
 };
@@ -137,26 +118,91 @@ export const archiveCourse = async (courseId: string) => {
 export const manageRoster = async (
   courseId: string,
   studentId: string,
-  action: "add" | "remove"
+  action: "add" | "remove",
 ): Promise<Course> => {
-  const response = await api.put<Course>(
-    `/courses/${courseId}/roster`,
-    {
-      studentId,
-      action,
-    }
-  );
+  const response = await api.put<Course>(`/courses/${courseId}/roster`, {
+    studentId,
+    action,
+  });
 
   return response.data;
 };
 
-export const getCourseProgress = async (
-  courseId: string
-) => {
-  const response = await api.get(
-    `/courses/${courseId}/progress`
-  );
+export const getCourseProgress = async (courseId: string) => {
+  const response = await api.get(`/courses/${courseId}/progress`);
 
+  return response.data;
+};
+
+/* =========================
+   ASSIGNMENTS
+========================= */
+
+export const createAssignment = async (
+  data: CreateAssignmentRequest,
+): Promise<Assignment> => {
+  const response = await api.post<Assignment>("/assignments", data);
+  return response.data;
+};
+
+export const getAssignmentsByCourse = async (
+  courseId: string,
+): Promise<Assignment[]> => {
+  const response = await api.get<Assignment[]>(
+    `/assignments/course/${courseId}`,
+  );
+  return response.data;
+};
+
+export const getAssignment = async (
+  assignmentId: string,
+): Promise<Assignment> => {
+  const response = await api.get<Assignment>(`/assignments/${assignmentId}`);
+  return response.data;
+};
+
+export const deleteAssignment = async (assignmentId: string) => {
+  const response = await api.delete(`/assignments/${assignmentId}`);
+  return response.data;
+};
+
+/* =========================
+   SUBMISSIONS
+========================= */
+
+export const submitAssignment = async (
+  assignmentId: string,
+  data: SubmitAssignmentRequest,
+): Promise<Submission> => {
+  const response = await api.post<Submission>(
+    `/submissions/assignment/${assignmentId}`,
+    data,
+  );
+  return response.data;
+};
+
+export const getMySubmissions = async (): Promise<Submission[]> => {
+  const response = await api.get<Submission[]>("/submissions/mine");
+  return response.data;
+};
+
+export const getAssignmentSubmissions = async (
+  assignmentId: string,
+): Promise<Submission[]> => {
+  const response = await api.get<Submission[]>(
+    `/submissions/assignment/${assignmentId}`,
+  );
+  return response.data;
+};
+
+export const gradeSubmission = async (
+  submissionId: string,
+  data: GradeSubmissionRequest,
+): Promise<Submission> => {
+  const response = await api.put<Submission>(
+    `/submissions/${submissionId}/grade`,
+    data,
+  );
   return response.data;
 };
 
