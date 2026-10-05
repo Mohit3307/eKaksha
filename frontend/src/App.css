@@ -2078,3 +2078,145 @@
     width: 100%;
   }
 }
+.teacher-submission-page {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.teacher-submission-details-card {
+  padding: 28px;
+  background: #fff;
+  border: 1px solid #e6eaf2;
+  border-radius: 16px;
+}
+
+.student-submission-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.student-avatar.large {
+  width: 52px;
+  height: 52px;
+  font-size: 18px;
+}
+
+.student-submission-header h2 {
+  margin: 0 0 5px;
+  color: #26334d;
+  font-size: 19px;
+}
+
+.student-submission-header p {
+  margin: 0;
+  color: #8a94a6;
+  font-size: 13px;
+}
+
+.teacher-answer-section,
+.teacher-attachments-section {
+  padding: 24px 0;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.teacher-answer-section h2,
+.teacher-attachments-section h2 {
+  margin: 0 0 12px;
+  color: #26334d;
+  font-size: 17px;
+}
+
+.teacher-answer-box {
+  min-height: 120px;
+  padding: 16px;
+  border: 1px solid #e6eaf2;
+  border-radius: 10px;
+  background: #fafbfe;
+  color: #4a5568;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.grading-section {
+  padding-top: 24px;
+}
+
+.grading-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.grading-section-header h2 {
+  margin: 0 0 6px;
+  color: #26334d;
+  font-size: 18px;
+}
+
+.grading-section-header p {
+  margin: 0;
+  color: #718096;
+  font-size: 13px;
+}
+
+.graded-badge {
+  flex-shrink: 0;
+  padding: 7px 11px;
+  border-radius: 20px;
+  background: #e6f7ed;
+  color: #21864a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.grade-input-row {
+  max-width: 260px;
+}
+
+.grade-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.grade-input-wrapper input {
+  width: 120px;
+}
+
+.grade-input-wrapper span {
+  color: #718096;
+  font-size: 14px;
+}
+
+.grading-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+@media (max-width: 650px) {
+  .teacher-submission-details-card {
+    padding: 20px;
+  }
+
+  .grading-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .grading-actions {
+    flex-direction: column-reverse;
+  }
+
+  .grading-actions button {
+    width: 100%;
+  }
+}

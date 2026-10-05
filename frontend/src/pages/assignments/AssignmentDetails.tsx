@@ -416,10 +416,11 @@ function AssignmentDetails() {
                         <button
                           type="button"
                           className="secondary-button"
-                          onClick={() => {
-                            // Detailed submission view
-                            // will be added next.
-                          }}
+                          onClick={() =>
+                            navigate(
+                              `/assignments/${id}/submissions/${submission._id}`,
+                            )
+                          }
                         >
                           View Submission
                         </button>

@@ -15,6 +15,7 @@ import CreateAssignment from "./pages/assignments/CreateAssignment";
 import AssignmentDetails from "./pages/assignments/AssignmentDetails";
 import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import TeacherSubmissionDetails from "./pages/assignments/TeacherSubmissionDetails";
 
 function App() {
   return (
@@ -39,6 +40,10 @@ function App() {
             element={<CreateAssignment />}
           />
           <Route path="/assignments/:id" element={<AssignmentDetails />} />
+          <Route
+            path="/assignments/:assignmentId/submissions/:submissionId"
+            element={<TeacherSubmissionDetails />}
+          />
         </Route>
       </Route>
 
