@@ -8,6 +8,7 @@ const assignmentRoutes = require("./routes/assignmentRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const fileRoutes = require("./routes/fileRoutes");
 
 const app = express();
 connectDB();
@@ -23,6 +24,7 @@ app.use("/assignments", assignmentRoutes);
 app.use("/submissions", submissionRoutes);
 app.use("/announcements", announcementRoutes);
 app.use("/comments", commentRoutes);
+app.use("/files", fileRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

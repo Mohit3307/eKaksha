@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const {
@@ -6,15 +7,29 @@ const {
   getMySubmissions,
   getAssignmentSubmissions,
   gradeSubmission,
+  uploadSubmissionAttachment,
 } = require("../controllers/submissionController");
 
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+const {
+  protect,
+  authorizeRoles,
+} = require("../middleware/authMiddleware");
+
+const upload = require("../middleware/uploadMiddleware");
 
 router.post(
   "/assignment/:assignmentId",
   protect,
   authorizeRoles("student"),
   submitAssignment
+);
+
+router.post(
+  "/assignment/:assignmentId/attachments",
+  protect,
+  authorizeRoles("student"),
+  upload.single("file"),
+  uploadSubmissionAttachment
 );
 
 router.get(

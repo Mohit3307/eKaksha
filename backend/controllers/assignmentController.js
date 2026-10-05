@@ -1,10 +1,18 @@
 const mongoose = require("mongoose");
 const Assignment = require("../models/Assignment");
 const Course = require("../models/Course");
+const getGridFSBucket = require("../config/gridfs");
 
 const createAssignment = async (req, res) => {
   try {
-    const { title, description, course, dueDate, totalMarks, attachments } = req.body;
+    const {
+      title,
+      description,
+      course,
+      dueDate,
+      totalMarks,
+      attachments,
+    } = req.body;
 
     if (!title || !description || !course || !dueDate) {
       return res.status(400).json({
@@ -13,7 +21,9 @@ const createAssignment = async (req, res) => {
     }
 
     if (!mongoose.Types.ObjectId.isValid(course)) {
-      return res.status(400).json({ message: "Invalid course id" });
+      return res.status(400).json({
+        message: "Invalid course id",
+      });
     }
 
     const numericTotalMarks =
@@ -28,11 +38,15 @@ const createAssignment = async (req, res) => {
     const existingCourse = await Course.findById(course);
 
     if (!existingCourse) {
-      return res.status(404).json({ message: "Course not found" });
+      return res.status(404).json({
+        message: "Course not found",
+      });
     }
 
     if (existingCourse.teacher.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "You do not own this course" });
+      return res.status(403).json({
+        message: "You do not own this course",
+      });
     }
 
     const assignment = await Assignment.create({
@@ -48,7 +62,9 @@ const createAssignment = async (req, res) => {
     return res.status(201).json(assignment);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Failed to create assignment" });
+    return res.status(500).json({
+      message: "Failed to create assignment",
+    });
   }
 };
 
@@ -57,39 +73,54 @@ const getAssignmentsByCourse = async (req, res) => {
     const { courseId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(courseId)) {
-      return res.status(400).json({ message: "Invalid course id" });
+      return res.status(400).json({
+        message: "Invalid course id",
+      });
     }
 
     const course = await Course.findById(courseId);
 
     if (!course) {
-      return res.status(404).json({ message: "Course not found" });
+      return res.status(404).json({
+        message: "Course not found",
+      });
     }
 
-    const isTeacher = course.teacher.toString() === req.user._id.toString();
+    const isTeacher =
+      course.teacher.toString() === req.user._id.toString();
+
     const isStudent = course.students.some(
-      (studentId) => studentId.toString() === req.user._id.toString()
+      (studentId) =>
+        studentId.toString() === req.user._id.toString()
     );
 
     if (!isTeacher && !isStudent) {
-      return res.status(403).json({ message: "You are not a member of this course" });
+      return res.status(403).json({
+        message: "You are not a member of this course",
+      });
     }
 
-    const assignments = await Assignment.find({ course: courseId })
+    const assignments = await Assignment.find({
+      course: courseId,
+    })
       .populate("createdBy", "name email")
       .sort({ dueDate: 1 });
 
     return res.status(200).json(assignments);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Failed to fetch assignments" });
+    return res.status(500).json({
+      message: "Failed to fetch assignments",
+    });
   }
 };
 
 const getAssignment = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid assignment id" });
+      return res.status(400).json({
+        message: "Invalid assignment id",
+      });
     }
 
     const assignment = await Assignment.findById(req.params.id)
@@ -97,48 +128,186 @@ const getAssignment = async (req, res) => {
       .populate("createdBy", "name email");
 
     if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found" });
+      return res.status(404).json({
+        message: "Assignment not found",
+      });
     }
 
     const course = assignment.course;
-    const isTeacher = course.teacher.toString() === req.user._id.toString();
+
+    const isTeacher =
+      course.teacher.toString() === req.user._id.toString();
+
     const isStudent = course.students.some(
-      (studentId) => studentId.toString() === req.user._id.toString()
+      (studentId) =>
+        studentId.toString() === req.user._id.toString()
     );
 
     if (!isTeacher && !isStudent) {
-      return res.status(403).json({ message: "You are not a member of this course" });
+      return res.status(403).json({
+        message: "You are not a member of this course",
+      });
     }
 
     return res.status(200).json(assignment);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Failed to fetch assignment" });
+    return res.status(500).json({
+      message: "Failed to fetch assignment",
+    });
   }
 };
 
 const deleteAssignment = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid assignment id" });
+      return res.status(400).json({
+        message: "Invalid assignment id",
+      });
     }
 
     const assignment = await Assignment.findById(req.params.id);
 
     if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found" });
+      return res.status(404).json({
+        message: "Assignment not found",
+      });
     }
 
-    if (assignment.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
+    if (
+      assignment.createdBy.toString() !==
+      req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Not authorized",
+      });
     }
 
     await assignment.deleteOne();
 
-    return res.status(200).json({ message: "Assignment deleted" });
+    return res.status(200).json({
+      message: "Assignment deleted",
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Failed to delete assignment" });
+    return res.status(500).json({
+      message: "Failed to delete assignment",
+    });
+  }
+};
+
+/*
+ * Upload attachment to an assignment.
+ *
+ * Only the teacher who created the assignment
+ * can upload an attachment.
+ */
+const uploadAssignmentAttachment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid assignment id",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded",
+      });
+    }
+
+    const assignment = await Assignment.findById(id);
+
+    if (!assignment) {
+      return res.status(404).json({
+        message: "Assignment not found",
+      });
+    }
+
+    if (
+      assignment.createdBy.toString() !==
+      req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        message:
+          "Only the assignment teacher can upload attachments",
+      });
+    }
+
+    const bucket = getGridFSBucket();
+
+    const fileId = new mongoose.Types.ObjectId();
+
+    const uploadStream = bucket.openUploadStreamWithId(
+      fileId,
+      req.file.originalname,
+      {
+        contentType: req.file.mimetype,
+        metadata: {
+          uploadedBy: req.user._id.toString(),
+          courseId: assignment.course.toString(),
+          assignmentId: assignment._id.toString(),
+          resourceType: "assignment",
+        },
+      }
+    );
+
+    uploadStream.end(req.file.buffer);
+
+    uploadStream.on("finish", async () => {
+      try {
+        assignment.attachments.push(fileId.toString());
+
+        await assignment.save();
+
+        return res.status(201).json({
+          message:
+            "Assignment attachment uploaded successfully",
+          fileId: fileId.toString(),
+          fileName: req.file.originalname,
+          contentType: req.file.mimetype,
+          size: req.file.size,
+          assignmentId: assignment._id,
+        });
+      } catch (error) {
+        console.error(
+          "Failed to save attachment reference:",
+          error
+        );
+
+        try {
+          await bucket.delete(fileId);
+        } catch (deleteError) {
+          console.error(
+            "Failed to clean up GridFS file:",
+            deleteError
+          );
+        }
+
+        return res.status(500).json({
+          message:
+            "File uploaded but failed to attach it to assignment",
+        });
+      }
+    });
+
+    uploadStream.on("error", (error) => {
+      console.error("GridFS upload error:", error);
+
+      if (!res.headersSent) {
+        return res.status(500).json({
+          message: "Failed to upload assignment attachment",
+        });
+      }
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Failed to upload assignment attachment",
+    });
   }
 };
 
@@ -147,4 +316,5 @@ module.exports = {
   getAssignmentsByCourse,
   getAssignment,
   deleteAssignment,
+  uploadAssignmentAttachment,
 };
