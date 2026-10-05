@@ -16,6 +16,8 @@ import type {
   GradeSubmissionRequest,
 } from "../types/assignment";
 
+import type { Announcement } from "../types/announcement";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const api = axios.create({
@@ -109,6 +111,7 @@ export const joinCourse = async (joinCode: string): Promise<Course> => {
 
   return response.data;
 };
+
 export const archiveCourse = async (courseId: string) => {
   const response = await api.put(`/courses/${courseId}/archive`);
 
@@ -142,6 +145,7 @@ export const createAssignment = async (
   data: CreateAssignmentRequest,
 ): Promise<Assignment> => {
   const response = await api.post<Assignment>("/assignments", data);
+
   return response.data;
 };
 
@@ -151,6 +155,7 @@ export const getAssignmentsByCourse = async (
   const response = await api.get<Assignment[]>(
     `/assignments/course/${courseId}`,
   );
+
   return response.data;
 };
 
@@ -158,11 +163,13 @@ export const getAssignment = async (
   assignmentId: string,
 ): Promise<Assignment> => {
   const response = await api.get<Assignment>(`/assignments/${assignmentId}`);
+
   return response.data;
 };
 
 export const deleteAssignment = async (assignmentId: string) => {
   const response = await api.delete(`/assignments/${assignmentId}`);
+
   return response.data;
 };
 
@@ -178,11 +185,13 @@ export const submitAssignment = async (
     `/submissions/assignment/${assignmentId}`,
     data,
   );
+
   return response.data;
 };
 
 export const getMySubmissions = async (): Promise<Submission[]> => {
   const response = await api.get<Submission[]>("/submissions/mine");
+
   return response.data;
 };
 
@@ -192,6 +201,7 @@ export const getAssignmentSubmissions = async (
   const response = await api.get<Submission[]>(
     `/submissions/assignment/${assignmentId}`,
   );
+
   return response.data;
 };
 
@@ -203,6 +213,47 @@ export const gradeSubmission = async (
     `/submissions/${submissionId}/grade`,
     data,
   );
+
+  return response.data;
+};
+
+/* =========================
+   ANNOUNCEMENTS
+========================= */
+
+export const getAnnouncementsByCourse = async (
+  courseId: string,
+): Promise<Announcement[]> => {
+  const response = await api.get<Announcement[]>(
+    `/announcements/course/${courseId}`,
+  );
+
+  return response.data;
+};
+
+export const createAnnouncement = async (
+  courseId: string,
+  content: string,
+  attachments: string[] = [],
+): Promise<Announcement> => {
+  const response = await api.post<Announcement>(
+    `/announcements/course/${courseId}`,
+    {
+      content,
+      attachments,
+    },
+  );
+
+  return response.data;
+};
+
+export const deleteAnnouncement = async (
+  announcementId: string,
+): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(
+    `/announcements/${announcementId}`,
+  );
+
   return response.data;
 };
 

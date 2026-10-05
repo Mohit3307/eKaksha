@@ -2220,3 +2220,93 @@
     width: 100%;
   }
 }
+/* =========================
+   ANNOUNCEMENTS
+========================= */
+
+.announcement-create-card {
+  margin-bottom: 28px;
+}
+
+.announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.announcement-card {
+  padding: 24px;
+}
+
+.announcement-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.announcement-card-header h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.announcement-date {
+  margin: 0;
+  color: #777;
+  font-size: 13px;
+}
+
+.announcement-message {
+  color: #333;
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.announcement-card .danger-button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .announcement-card-header {
+    flex-direction: column;
+  }
+
+  .announcement-card .danger-button {
+    width: 100%;
+  }
+}
+
+/* =========================
+   COURSE ANNOUNCEMENTS LINK
+========================= */
+
+.assignments-link-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.assignments-link-card h2 {
+  margin: 0 0 8px;
+}
+
+.assignments-link-card p {
+  margin: 0;
+  color: #777;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .assignments-link-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assignments-link-card .primary-button {
+    width: 100%;
+  }
+}

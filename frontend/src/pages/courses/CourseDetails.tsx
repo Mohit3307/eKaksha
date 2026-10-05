@@ -268,7 +268,27 @@ function CourseDetails() {
           View Assignments →
         </button>
       </section>
+      
+      <section className="details-card assignments-link-card">
+        <div>
+          <h2>Announcements</h2>
 
+          <p>
+            View course announcements and important updates from your teacher.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() =>
+            navigate(`/courses/${course._id}/announcements`)
+          }
+        >
+          View Announcements →
+        </button>
+        
+      </section>
       {isTeacher && (
         <section className="course-management-section">
           <div>
