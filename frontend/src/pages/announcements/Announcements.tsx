@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+
 import {
   createAnnouncement,
   deleteAnnouncement,
   getAnnouncementsByCourse,
   getCourseById,
+  uploadAnnouncementAttachment,
+  getFileUrl,
+  validateUploadFile,
 } from "../../services/api";
+
 import type { Announcement } from "../../types/announcement";
 import type { Course } from "../../types/course";
 
@@ -15,10 +20,17 @@ function Announcements() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+
   const [message, setMessage] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const [uploadingAttachmentId, setUploadingAttachmentId] = useState<
+    string | null
+  >(null);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -80,10 +92,7 @@ function Announcements() {
       setError("");
       setSuccess("");
 
-      const created = await createAnnouncement(
-        courseId,
-        trimmedMessage,
-      );
+      const created = await createAnnouncement(courseId, trimmedMessage);
 
       setAnnouncements((previous) => [created, ...previous]);
       setMessage("");
@@ -96,6 +105,75 @@ function Announcements() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAnnouncementAttachmentUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+    announcementId: string,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const validationError = validateUploadFile(file);
+
+    if (validationError) {
+      setError(validationError);
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingAttachmentId(announcementId);
+      setError("");
+      setSuccess("");
+
+      await uploadAnnouncementAttachment(announcementId, file);
+
+      if (courseId) {
+        const updatedAnnouncements = await getAnnouncementsByCourse(courseId);
+
+        setAnnouncements(updatedAnnouncements);
+      }
+
+      setSuccess(`"${file.name}" attached successfully.`);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Failed to upload announcement attachment.",
+      );
+    } finally {
+      setUploadingAttachmentId(null);
+      event.target.value = "";
+    }
+  };
+
+  const handleOpenAttachment = (fileId: string) => {
+    if (!localStorage.getItem("token")) {
+      setError("You are not logged in.");
+      return;
+    }
+
+    window.open(getFileUrl(fileId), "_blank");
+  };
+
+  const handleDownloadAttachment = (fileId: string) => {
+    if (!localStorage.getItem("token")) {
+      setError("You are not logged in.");
+      return;
+    }
+
+    const downloadLink = document.createElement("a");
+
+    downloadLink.href = getFileUrl(fileId);
+    downloadLink.target = "_blank";
+    downloadLink.rel = "noopener noreferrer";
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
   };
 
   const handleDeleteAnnouncement = async (announcementId: string) => {
@@ -115,9 +193,7 @@ function Announcements() {
       await deleteAnnouncement(announcementId);
 
       setAnnouncements((previous) =>
-        previous.filter(
-          (announcement) => announcement._id !== announcementId,
-        ),
+        previous.filter((announcement) => announcement._id !== announcementId),
       );
 
       setSuccess("Announcement deleted successfully.");
@@ -178,9 +254,7 @@ function Announcements() {
 
           <form onSubmit={handleCreateAnnouncement}>
             <div className="form-group">
-              <label htmlFor="announcement-message">
-                Announcement
-              </label>
+              <label htmlFor="announcement-message">Announcement</label>
 
               <textarea
                 id="announcement-message"
@@ -222,18 +296,13 @@ function Announcements() {
       ) : (
         <div className="announcement-list">
           {announcements.map((announcement) => (
-            <article
-              className="card announcement-card"
-              key={announcement._id}
-            >
+            <article className="card announcement-card" key={announcement._id}>
               <div className="announcement-card-header">
                 <div>
                   <h3>{announcement.author?.name || "Teacher"}</h3>
 
                   <p className="announcement-date">
-                    {new Date(
-                      announcement.createdAt,
-                    ).toLocaleString()}
+                    {new Date(announcement.createdAt).toLocaleString()}
                   </p>
                 </div>
 
@@ -241,20 +310,79 @@ function Announcements() {
                   <button
                     type="button"
                     className="danger-button"
-                    onClick={() =>
-                      handleDeleteAnnouncement(announcement._id)
-                    }
+                    onClick={() => handleDeleteAnnouncement(announcement._id)}
                     disabled={deletingId === announcement._id}
                   >
-                    {deletingId === announcement._id
-                      ? "Deleting..."
-                      : "Delete"}
+                    {deletingId === announcement._id ? "Deleting..." : "Delete"}
                   </button>
                 )}
               </div>
 
-              <div className="announcement-message">
-                {announcement.content}
+              <div className="announcement-message">{announcement.content}</div>
+
+              <div className="announcement-attachments-section">
+                <h4>Attachments</h4>
+
+                {announcement.attachments &&
+                announcement.attachments.length > 0 ? (
+                  <div className="assignment-attachments">
+                    {announcement.attachments.map((attachment, index) => (
+                      <div className="attachment-item" key={attachment}>
+                        <span>📎</span>
+
+                        <span>Announcement Attachment {index + 1}</span>
+
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => handleOpenAttachment(attachment)}
+                        >
+                          Open
+                        </button>
+
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => handleDownloadAttachment(attachment)}
+                        >
+                          Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="no-attachments">No attachments.</p>
+                )}
+
+                {isTeacher && (
+                  <div className="announcement-attachment-upload">
+                    <label
+                      htmlFor={`announcement-attachment-${announcement._id}`}
+                    >
+                      Add Attachment
+                    </label>
+
+                    <input
+                      id={`announcement-attachment-${announcement._id}`}
+                      type="file"
+                      onChange={(event) =>
+                        handleAnnouncementAttachmentUpload(
+                          event,
+                          announcement._id,
+                        )
+                      }
+                      disabled={uploadingAttachmentId === announcement._id}
+                    />
+
+                    <small>
+                      PDF, images, Word, PowerPoint, and text files up to 10 MB.
+                    </small>
+
+                    {uploadingAttachmentId === announcement._id && (
+                      <p className="upload-status">Uploading attachment...</p>
+                    )}
+                  </div>
+                )}
               </div>
             </article>
           ))}

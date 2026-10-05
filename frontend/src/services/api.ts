@@ -28,10 +28,6 @@ const api = axios.create({
   },
 });
 
-/*
- * Automatically attach JWT token
- * to protected API requests.
- */
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -42,9 +38,7 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
 /* =========================
@@ -264,6 +258,160 @@ export const deleteAnnouncement = async (
 ): Promise<{ message: string }> => {
   const response = await api.delete<{ message: string }>(
     `/announcements/${announcementId}`,
+  );
+
+  return response.data;
+};
+
+/* =========================
+   FILE UPLOAD SAFETY
+========================= */
+
+export const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
+export const ALLOWED_UPLOAD_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+];
+
+export const validateUploadFile = (file: File): string | null => {
+  if (file.size > MAX_UPLOAD_SIZE) {
+    return "File size must be 10 MB or smaller.";
+  }
+
+  if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
+    return "File type is not supported. Allowed files are PDF, images, Word, PowerPoint, and text files.";
+  }
+
+  return null;
+};
+
+/* =========================
+   GRIDFS / FILES
+========================= */
+
+export interface UploadedFile {
+  message: string;
+  fileId: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+}
+
+export const uploadFile = async (
+  file: File,
+  courseId: string,
+  assignmentId?: string,
+): Promise<UploadedFile> => {
+  const formData = new FormData();
+
+  formData.append("file", file);
+  formData.append("courseId", courseId);
+
+  if (assignmentId) {
+    formData.append("assignmentId", assignmentId);
+  }
+
+  const response = await api.post<UploadedFile>("/files/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data;
+};
+
+export const getFileUrl = (fileId: string): string => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    return `${API_URL}/files/${fileId}`;
+  }
+
+  return `${API_URL}/files/${fileId}?token=${encodeURIComponent(token)}`;
+};
+
+export const getFileBlob = async (fileId: string): Promise<Blob> => {
+  const response = await api.get(`/files/${fileId}`, {
+    responseType: "blob",
+  });
+
+  return response.data;
+};
+
+export const deleteFile = async (
+  fileId: string,
+): Promise<{ message: string }> => {
+  const response = await api.delete<{ message: string }>(`/files/${fileId}`);
+
+  return response.data;
+};
+
+export const uploadAssignmentAttachment = async (
+  assignmentId: string,
+  file: File,
+): Promise<UploadedFile> => {
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await api.post<UploadedFile>(
+    `/assignments/${assignmentId}/attachments`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const uploadSubmissionAttachment = async (
+  assignmentId: string,
+  file: File,
+): Promise<UploadedFile> => {
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await api.post<UploadedFile>(
+    `/submissions/assignment/${assignmentId}/attachments`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const uploadAnnouncementAttachment = async (
+  announcementId: string,
+  file: File,
+): Promise<UploadedFile> => {
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await api.post<UploadedFile>(
+    `/announcements/${announcementId}/attachments`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
   );
 
   return response.data;

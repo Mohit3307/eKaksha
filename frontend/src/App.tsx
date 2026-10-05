@@ -19,6 +19,7 @@ import TeacherSubmissionDetails from "./pages/assignments/TeacherSubmissionDetai
 import Announcements from "./pages/announcements/Announcements";
 import CourseRoster from "./pages/courses/CourseRoster";
 import CourseProgress from "./pages/courses/CourseProgress";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           <Route path="/courses/:id" element={<CourseDetails />} />
           <Route path="/courses/:id/assignments" element={<Assignments />} />
           <Route path="/courses/:id/progress" element={<CourseProgress />} />
+          <Route path="/profile" element={<Profile />} />
           <Route
             path="/courses/:id/assignments/create"
             element={<CreateAssignment />}

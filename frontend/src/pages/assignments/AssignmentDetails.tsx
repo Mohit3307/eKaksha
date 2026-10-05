@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -6,6 +6,11 @@ import {
   getMySubmissions,
   getAssignmentSubmissions,
   submitAssignment,
+  uploadAssignmentAttachment,
+  uploadFile,
+  deleteFile,
+  getFileUrl,
+  validateUploadFile,
 } from "../../services/api";
 
 import type { Assignment, Submission } from "../../types/assignment";
@@ -33,8 +38,18 @@ function AssignmentDetails() {
   const [error, setError] = useState("");
 
   const [answer, setAnswer] = useState("");
+
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
   const [submitting, setSubmitting] = useState(false);
+
   const [submissionMessage, setSubmissionMessage] = useState("");
+
+  const [uploadingAssignmentAttachment, setUploadingAssignmentAttachment] =
+    useState(false);
+
+  const [assignmentAttachmentMessage, setAssignmentAttachmentMessage] =
+    useState("");
 
   useEffect(() => {
     const loadAssignment = async () => {
@@ -67,7 +82,6 @@ function AssignmentDetails() {
 
           if (existingSubmission) {
             setMySubmission(existingSubmission);
-
             setAnswer(existingSubmission.textResponse || "");
           }
         }
@@ -90,35 +104,181 @@ function AssignmentDetails() {
     loadAssignment();
   }, [id, isStudent, isTeacher]);
 
-  const handleSubmitAssignment = async () => {
-    if (!id) {
-      setError("Assignment ID is missing.");
+  const handleSelectSubmissionFiles = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(event.target.files || []);
+
+    if (files.length === 0) {
       return;
     }
 
-    if (!answer.trim()) {
-      setError("Please enter your answer before submitting.");
+    setError("");
+
+    for (const file of files) {
+      const validationError = validateUploadFile(file);
+
+      if (validationError) {
+        setError(`${file.name}: ${validationError}`);
+        event.target.value = "";
+        return;
+      }
+    }
+
+    setSelectedFiles(files);
+
+    event.target.value = "";
+  };
+
+  const handleRemoveSelectedFile = (fileName: string) => {
+    setSelectedFiles((previous) =>
+      previous.filter((file) => file.name !== fileName),
+    );
+  };
+
+  const handleSubmitAssignment = async () => {
+    if (!id || !assignment) {
+      setError("Assignment information is missing.");
       return;
     }
+
+    if (!answer.trim() && selectedFiles.length === 0) {
+      setError(
+        "Please enter an answer or attach at least one file before submitting.",
+      );
+      return;
+    }
+
+    const courseId =
+      typeof assignment.course === "string"
+        ? assignment.course
+        : assignment.course?._id;
+
+    if (!courseId) {
+      setError("Course information is missing.");
+      return;
+    }
+
+    let uploadedFileIds: string[] = [];
 
     try {
       setSubmitting(true);
       setError("");
       setSubmissionMessage("");
 
+      /*
+       * Upload selected files first.
+       *
+       * The generic GridFS endpoint does not require
+       * a submission to exist yet, so the returned file IDs
+       * can be included in the initial submission.
+       */
+      if (selectedFiles.length > 0) {
+        for (const file of selectedFiles) {
+          const uploadedFile = await uploadFile(file, courseId, id);
+
+          uploadedFileIds.push(uploadedFile.fileId);
+        }
+      }
+
       const submission = await submitAssignment(id, {
         textResponse: answer.trim(),
-        attachments: [],
+        attachments: uploadedFileIds,
       });
 
       setMySubmission(submission);
 
+      setSelectedFiles([]);
+
       setSubmissionMessage("Assignment submitted successfully.");
     } catch (error: any) {
+      /*
+       * If file upload succeeded but submission failed,
+       * clean up those files so we do not leave orphaned
+       * GridFS files behind.
+       */
+      if (uploadedFileIds.length > 0) {
+        await Promise.all(
+          uploadedFileIds.map(async (fileId) => {
+            try {
+              await deleteFile(fileId);
+            } catch {
+              // Ignore cleanup errors.
+            }
+          }),
+        );
+      }
+
       setError(error.response?.data?.message || "Unable to submit assignment.");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAssignmentAttachmentUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file || !id) {
+      return;
+    }
+
+    const validationError = validateUploadFile(file);
+
+    if (validationError) {
+      setError(validationError);
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      setUploadingAssignmentAttachment(true);
+      setError("");
+      setAssignmentAttachmentMessage("");
+
+      await uploadAssignmentAttachment(id, file);
+
+      const updatedAssignment = await getAssignment(id);
+
+      setAssignment(updatedAssignment);
+
+      setAssignmentAttachmentMessage(`"${file.name}" uploaded successfully.`);
+    } catch (error: any) {
+      setError(
+        error.response?.data?.message ||
+          "Unable to upload assignment attachment.",
+      );
+    } finally {
+      setUploadingAssignmentAttachment(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleOpenAttachment = (fileId: string) => {
+    if (!localStorage.getItem("token")) {
+      setError("You are not logged in.");
+      return;
+    }
+
+    window.open(getFileUrl(fileId), "_blank");
+  };
+
+  const handleDownloadAttachment = (fileId: string) => {
+    if (!localStorage.getItem("token")) {
+      setError("You are not logged in.");
+      return;
+    }
+
+    const downloadLink = document.createElement("a");
+
+    downloadLink.href = getFileUrl(fileId);
+    downloadLink.target = "_blank";
+    downloadLink.rel = "noopener noreferrer";
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
   };
 
   if (loading) {
@@ -185,6 +345,10 @@ function AssignmentDetails() {
 
       {error && <div className="error-box">{error}</div>}
 
+      {assignmentAttachmentMessage && (
+        <div className="success-box">{assignmentAttachmentMessage}</div>
+      )}
+
       <section className="assignment-details-card">
         <div className="assignment-details-top">
           <div>
@@ -216,10 +380,26 @@ function AssignmentDetails() {
           {assignment.attachments && assignment.attachments.length > 0 ? (
             <div className="assignment-attachments">
               {assignment.attachments.map((attachment, index) => (
-                <div className="attachment-item" key={index}>
+                <div className="attachment-item" key={attachment}>
                   <span>📎</span>
 
-                  <span>{attachment}</span>
+                  <span>Assignment Attachment {index + 1}</span>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => handleOpenAttachment(attachment)}
+                  >
+                    Open
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => handleDownloadAttachment(attachment)}
+                  >
+                    Download
+                  </button>
                 </div>
               ))}
             </div>
@@ -227,6 +407,29 @@ function AssignmentDetails() {
             <p className="no-attachments">
               No attachments for this assignment.
             </p>
+          )}
+
+          {isTeacher && (
+            <div className="assignment-attachment-upload">
+              <label htmlFor="assignment-attachment">
+                Add Assignment Attachment
+              </label>
+
+              <input
+                id="assignment-attachment"
+                type="file"
+                onChange={handleAssignmentAttachmentUpload}
+                disabled={uploadingAssignmentAttachment}
+              />
+
+              <small>
+                PDF, images, Word, PowerPoint, and text files up to 10 MB.
+              </small>
+
+              {uploadingAssignmentAttachment && (
+                <p className="upload-status">Uploading attachment...</p>
+              )}
+            </div>
           )}
         </div>
 
@@ -237,7 +440,7 @@ function AssignmentDetails() {
               <div>
                 <h2>My Submission</h2>
 
-                <p>View your submission status, answer, grade, and feedback.</p>
+                <p>Submit your answer and optional files together.</p>
               </div>
 
               {mySubmission && (
@@ -249,6 +452,10 @@ function AssignmentDetails() {
               <Loading />
             ) : mySubmission ? (
               <>
+                {submissionMessage && (
+                  <div className="success-box">{submissionMessage}</div>
+                )}
+
                 <div className="submission-status-grid">
                   <div>
                     <span className="assignment-detail-label">
@@ -302,6 +509,41 @@ function AssignmentDetails() {
                       : "No feedback yet."}
                   </div>
                 </div>
+
+                <div className="submission-attachments-section">
+                  <h3>Submission Attachments</h3>
+
+                  {mySubmission.attachments &&
+                  mySubmission.attachments.length > 0 ? (
+                    <div className="assignment-attachments">
+                      {mySubmission.attachments.map((attachment, index) => (
+                        <div className="attachment-item" key={attachment}>
+                          <span>📎</span>
+
+                          <span>Submission Attachment {index + 1}</span>
+
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => handleOpenAttachment(attachment)}
+                          >
+                            Open
+                          </button>
+
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => handleDownloadAttachment(attachment)}
+                          >
+                            Download
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="no-attachments">No attachments submitted.</p>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -321,6 +563,49 @@ function AssignmentDetails() {
                     disabled={submitting}
                   />
 
+                  <div className="submission-file-upload">
+                    <label htmlFor="submission-files">Attach Files</label>
+
+                    <input
+                      id="submission-files"
+                      type="file"
+                      multiple
+                      onChange={handleSelectSubmissionFiles}
+                      disabled={submitting}
+                    />
+
+                    <small>
+                      PDF, images, Word, PowerPoint, and text files up to 10 MB
+                      each.
+                    </small>
+                  </div>
+
+                  {selectedFiles.length > 0 && (
+                    <div className="selected-submission-files">
+                      <h3>Selected Files</h3>
+
+                      {selectedFiles.map((file) => (
+                        <div
+                          className="selected-file-item"
+                          key={`${file.name}-${file.size}-${file.lastModified}`}
+                        >
+                          <span>📎 {file.name}</span>
+
+                          <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => handleRemoveSelectedFile(file.name)}
+                            disabled={submitting}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="submission-actions">
                     <button
                       type="button"
@@ -328,7 +613,11 @@ function AssignmentDetails() {
                       onClick={handleSubmitAssignment}
                       disabled={submitting}
                     >
-                      {submitting ? "Submitting..." : "Submit Assignment"}
+                      {submitting
+                        ? selectedFiles.length > 0
+                          ? "Uploading & Submitting..."
+                          : "Submitting..."
+                        : "Submit Assignment"}
                     </button>
                   </div>
                 </div>

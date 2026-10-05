@@ -5,6 +5,7 @@ import {
   getAssignment,
   getAssignmentSubmissions,
   gradeSubmission,
+  getFileUrl,
 } from "../../services/api";
 
 import type { Assignment, Submission } from "../../types/assignment";
@@ -138,6 +139,32 @@ function TeacherSubmissionDetails() {
     }
   };
 
+  const handleOpenAttachment = (fileId: string) => {
+    if (!localStorage.getItem("token")) {
+      setError("You are not logged in.");
+      return;
+    }
+
+    window.open(getFileUrl(fileId), "_blank");
+  };
+
+  const handleDownloadAttachment = (fileId: string) => {
+    if (!localStorage.getItem("token")) {
+      setError("You are not logged in.");
+      return;
+    }
+
+    const downloadLink = document.createElement("a");
+
+    downloadLink.href = getFileUrl(fileId);
+    downloadLink.target = "_blank";
+    downloadLink.rel = "noopener noreferrer";
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    downloadLink.remove();
+  };
+
   if (loading) {
     return <Loading />;
   }
@@ -264,10 +291,26 @@ function TeacherSubmissionDetails() {
           {submission.attachments && submission.attachments.length > 0 ? (
             <div className="assignment-attachments">
               {submission.attachments.map((attachment, index) => (
-                <div className="attachment-item" key={index}>
+                <div className="attachment-item" key={attachment}>
                   <span>📎</span>
 
-                  <span>{attachment}</span>
+                  <span>Submission Attachment {index + 1}</span>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => handleOpenAttachment(attachment)}
+                  >
+                    Open
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => handleDownloadAttachment(attachment)}
+                  >
+                    Download
+                  </button>
                 </div>
               ))}
             </div>
