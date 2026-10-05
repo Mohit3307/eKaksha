@@ -4,6 +4,7 @@ import type {
   AuthResponse,
   LoginRequest,
   RegisterRequest,
+  User,
 } from "../types/auth";
 
 import type { Course, CreateCourseRequest } from "../types/course";
@@ -66,6 +67,17 @@ export const registerUser = async (
 
 export const getProfile = async () => {
   const response = await api.get("/auth/profile");
+
+  return response.data;
+};
+
+export const getUsers = async (params?: {
+  role?: "teacher" | "student";
+  search?: string;
+}): Promise<User[]> => {
+  const response = await api.get<User[]>("/auth/users", {
+    params,
+  });
 
   return response.data;
 };

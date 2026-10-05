@@ -251,6 +251,15 @@ function CourseDetails() {
             </p>
           </div>
         )}
+        {isTeacher && (
+          <button
+            type="button"
+            className="primary-button roster-manage-button"
+            onClick={() => navigate(`/courses/${course._id}/roster`)}
+          >
+            Manage Students →
+          </button>
+        )}
       </section>
 
       <section className="details-card assignments-link-card">
@@ -268,7 +277,7 @@ function CourseDetails() {
           View Assignments →
         </button>
       </section>
-      
+
       <section className="details-card assignments-link-card">
         <div>
           <h2>Announcements</h2>
@@ -281,14 +290,30 @@ function CourseDetails() {
         <button
           type="button"
           className="primary-button"
-          onClick={() =>
-            navigate(`/courses/${course._id}/announcements`)
-          }
+          onClick={() => navigate(`/courses/${course._id}/announcements`)}
         >
           View Announcements →
         </button>
-        
       </section>
+
+      <section className="details-card assignments-link-card">
+        <div>
+          <h2>Course Progress</h2>
+          <p>
+            Track assignment submissions, grades, and overall course
+            performance.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => navigate(`/courses/${course._id}/progress`)}
+        >
+          View Progress →
+        </button>
+      </section>
+
       {isTeacher && (
         <section className="course-management-section">
           <div>

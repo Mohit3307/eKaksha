@@ -17,6 +17,8 @@ import AppLayout from "./components/AppLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import TeacherSubmissionDetails from "./pages/assignments/TeacherSubmissionDetails";
 import Announcements from "./pages/announcements/Announcements";
+import CourseRoster from "./pages/courses/CourseRoster";
+import CourseProgress from "./pages/courses/CourseProgress";
 
 function App() {
   return (
@@ -36,6 +38,7 @@ function App() {
           <Route path="/courses/join" element={<JoinCourse />} />
           <Route path="/courses/:id" element={<CourseDetails />} />
           <Route path="/courses/:id/assignments" element={<Assignments />} />
+          <Route path="/courses/:id/progress" element={<CourseProgress />} />
           <Route
             path="/courses/:id/assignments/create"
             element={<CreateAssignment />}
@@ -45,6 +48,7 @@ function App() {
             element={<Announcements />}
           />
           <Route path="/assignments/:id" element={<AssignmentDetails />} />
+          <Route path="/courses/:id/roster" element={<CourseRoster />} />
           <Route
             path="/assignments/:assignmentId/submissions/:submissionId"
             element={<TeacherSubmissionDetails />}
